@@ -1,0 +1,10 @@
+import { describe, expect, it, vi } from "vitest";
+import { BlockchairProviderError, BlockchairRichListProvider } from "@/lib/discovery/blockchair-provider";
+const response = (status: number, body: unknown = {}) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+describe("optional Blockchair provider", () => {
+  it("does not make a request when no key is configured", async () => { const fetcher = vi.fn(); const provider = new BlockchairRichListProvider(undefined, fetcher); await expect(provider.getTopAddresses(10)).rejects.toMatchObject({ status: "NOT_CONFIGURED" }); expect(fetcher).not.toHaveBeenCalled(); });
+  it("uses the server-side configured key and caches the rich list", async () => { const fetcher = vi.fn().mockResolvedValue(response(200, { data: [{ address: "bc1verified", balance: 50_000_000_000 }] })); const provider = new BlockchairRichListProvider("secret-key", fetcher); const first = await provider.getTopAddresses(10); const second = await provider.getTopAddresses(10); expect(first[0]).toMatchObject({ address: "bc1verified", balanceBtc: 500, rank: 1 }); expect(second).toEqual(first); expect(fetcher).toHaveBeenCalledTimes(1); expect(String(fetcher.mock.calls[0][0])).toContain("key=secret-key"); });
+  it("reports authentication failure", async () => { const provider = new BlockchairRichListProvider("invalid", vi.fn().mockResolvedValue(response(403))); await expect(provider.getTopAddresses(1)).rejects.toMatchObject({ status: "AUTH_FAILED" }); });
+  it("reports rate limiting", async () => { const provider = new BlockchairRichListProvider("valid", vi.fn().mockResolvedValue(response(429))); await expect(provider.getTopAddresses(1)).rejects.toMatchObject({ status: "RATE_LIMITED" }); });
+  it("reports an unavailable provider", async () => { const provider = new BlockchairRichListProvider("valid", vi.fn().mockRejectedValue(new Error("offline"))); await expect(provider.getTopAddresses(1)).rejects.toMatchObject({ status: "UNAVAILABLE" }); });
+});

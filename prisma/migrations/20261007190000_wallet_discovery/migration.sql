@@ -1,0 +1,17 @@
+ALTER TABLE "Wallet" ADD COLUMN "rank" INTEGER;
+ALTER TABLE "Wallet" ADD COLUMN "discoverySource" TEXT;
+ALTER TABLE "Wallet" ADD COLUMN "discoveryConfidence" TEXT NOT NULL DEFAULT 'UNKNOWN';
+ALTER TABLE "Wallet" ADD COLUMN "discoveredAt" DATETIME;
+ALTER TABLE "Wallet" ADD COLUMN "lastCheckedAt" DATETIME;
+ALTER TABLE "Wallet" ADD COLUMN "isActiveDiscovery" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Wallet" ADD COLUMN "entityId" TEXT;
+CREATE TABLE "Entity" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "name" TEXT NOT NULL,
+  "type" TEXT NOT NULL DEFAULT 'UNKNOWN',
+  "confidence" TEXT NOT NULL DEFAULT 'UNKNOWN',
+  "source" TEXT,
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" DATETIME NOT NULL
+);
+CREATE UNIQUE INDEX "Entity_name_key" ON "Entity"("name");

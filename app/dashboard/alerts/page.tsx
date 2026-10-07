@@ -1,0 +1,3 @@
+import { db } from "@/lib/database/client";
+export const dynamic = "force-dynamic";
+export default async function AlertsPage() { const alerts = await db.alert.findMany({ orderBy: { createdAt: "desc" } }); return <div className="space-y-5"><h1 className="text-3xl font-bold">Alerts</h1><section className="panel">{alerts.length ? alerts.map(a=><div key={a.id} className="border-b border-slate-800 py-4"><b>{a.alertType} · {a.severity}</b><p className="mt-1 text-sm text-slate-400">{a.message}</p><p className="mt-1 text-xs text-slate-500">Discord: {a.sentToDiscord ? "Sent" : "Not sent"}</p></div>) : <p className="empty">NO DATA. Discord alerts require a configured webhook and verified alert events.</p>}</section></div>; }

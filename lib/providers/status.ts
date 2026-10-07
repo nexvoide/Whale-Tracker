@@ -1,0 +1,8 @@
+import { BlockchairRichListProvider } from "@/lib/discovery/blockchair-provider";
+import { getBtcMarketData } from "@/lib/market/binance";
+import { mempoolProvider } from "@/lib/blockchain/mempool-provider";
+import { runtimeConfig } from "@/lib/config";
+export type ProviderHealth = "CONNECTED" | "NOT_CONFIGURED" | "AUTH_FAILED" | "RATE_LIMITED" | "UNAVAILABLE";
+export type ProviderStatus = { name: string; status: ProviderHealth; detail: string };
+export async function getProviderStatuses(): Promise<ProviderStatus[]> { const [market, mempool] = await Promise.all([getBtcMarketData(), mempoolProvider.getLatestTransactions()]); const blockchair = new BlockchairRichListProvider(); const blockchairStatus: ProviderHealth = blockchair.configured ? "CONNECTED" : "NOT_CONFIGURED"; return [{ name: "Mempool", status: mempool.length ? "CONNECTED" : "UNAVAILABLE", detail: mempool.length ? "Public blockchain data" : "Public endpoint unavailable" }, { name: "Binance", status: market ? "CONNECTED" : "UNAVAILABLE", detail: market ? "BTC/USDT market data" : "Market data unavailable" }, { name: "Blockchair", status: blockchairStatus, detail: blockchair.configured ? "Optional rich-list provider enabled" : "Not configured" }, { name: "Discord", status: runtimeConfig.discordWebhookUrl ? "CONNECTED" : "NOT_CONFIGURED", detail: runtimeConfig.discordWebhookUrl ? "Webhook alert delivery configured" : "Not configured" }]; }
+export const statusLabel = (status: ProviderHealth) => ({ CONNECTED: "🟢 Connected", NOT_CONFIGURED: "⚪ Not configured", AUTH_FAILED: "🔴 Authentication failed", RATE_LIMITED: "🟡 Rate limited", UNAVAILABLE: "🔴 Unavailable" })[status];

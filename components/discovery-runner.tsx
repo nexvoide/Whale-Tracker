@@ -1,0 +1,4 @@
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+export function DiscoveryRunner() { const router = useRouter(); const [message, setMessage] = useState(""); const [busy, setBusy] = useState(false); const run = async () => { setBusy(true); setMessage(""); const response = await fetch("/api/discovery/run", { method: "POST" }); const body = await response.json(); setBusy(false); setMessage(response.ok ? `Discovery complete: ${body.discovered} addresses updated.` : body.error ?? "Discovery unavailable."); if (response.ok) router.refresh(); }; return <div className="flex flex-wrap items-center gap-3"><button onClick={run} disabled={busy}>{busy ? "Discovering…" : "Run discovery now"}</button>{message && <span className="text-sm text-slate-400">{message}</span>}</div>; }

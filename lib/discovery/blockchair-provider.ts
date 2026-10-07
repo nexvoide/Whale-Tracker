@@ -1,0 +1,17 @@
+import { z } from "zod";
+import { runtimeConfig } from "@/lib/config";
+import type { DiscoveredAddress, RichListProvider } from "./types";
+const responseSchema = z.object({ data: z.array(z.object({ address: z.string(), balance: z.coerce.number() })) });
+type Fetcher = typeof fetch;
+export type BlockchairStatus = "NOT_CONFIGURED" | "CONNECTED" | "AUTH_FAILED" | "RATE_LIMITED" | "UNAVAILABLE";
+export class BlockchairProviderError extends Error { constructor(readonly status: BlockchairStatus, message: string) { super(message); } }
+export class BlockchairRichListProvider implements RichListProvider {
+  private cache = new Map<string, { expiresAt: number; value: DiscoveredAddress[] }>();
+  constructor(private readonly apiKey = runtimeConfig.blockchairApiKey, private readonly fetcher: Fetcher = fetch) {}
+  get configured() { return Boolean(this.apiKey); }
+  private endpoint(path: string) { if (!this.apiKey) throw new BlockchairProviderError("NOT_CONFIGURED", "Blockchair is not configured. Automatic rich-list discovery requires an additional data provider."); return `https://api.blockchair.com/bitcoin${path}${path.includes("?") ? "&" : "?"}key=${encodeURIComponent(this.apiKey)}`; }
+  private async request(path: string): Promise<Response> { for (let attempt = 0; attempt < 3; attempt += 1) { try { const response = await this.fetcher(this.endpoint(path), { signal: AbortSignal.timeout(15_000), cache: "no-store" }); if (response.ok) return response; const status: BlockchairStatus = response.status === 401 || response.status === 403 ? "AUTH_FAILED" : response.status === 429 ? "RATE_LIMITED" : "UNAVAILABLE"; if (status === "AUTH_FAILED" || attempt === 2) throw new BlockchairProviderError(status, `Blockchair request failed (${response.status})`); } catch (error) { if (error instanceof BlockchairProviderError && (error.status === "AUTH_FAILED" || attempt === 2)) throw error; if (attempt === 2) throw new BlockchairProviderError("UNAVAILABLE", "Blockchair is unavailable"); } await new Promise((resolve) => setTimeout(resolve, 250 * 2 ** attempt)); } throw new BlockchairProviderError("UNAVAILABLE", "Blockchair is unavailable"); }
+  async getTopAddresses(limit: number): Promise<DiscoveredAddress[]> { const key = `top:${Math.min(limit, 1_000)}`; const cached = this.cache.get(key); if (cached && cached.expiresAt > Date.now()) return cached.value; const response = await this.request(`/addresses?limit=${Math.min(limit, 1_000)}`); const parsed = responseSchema.parse(await response.json()); const value = parsed.data.map((item, index) => ({ address: item.address, balanceBtc: item.balance / 100_000_000, rank: index + 1, source: "BLOCKCHAIR", confidence: "UNKNOWN" as const })); this.cache.set(key, { value, expiresAt: Date.now() + 5 * 60_000 }); return value; }
+  async getAddressBalance(address: string) { const item = await this.getAddressDetails(address); return item?.balanceBtc ?? null; }
+  async getAddressDetails(address: string) { try { const response = await this.request(`/dashboards/address/${encodeURIComponent(address)}?limit=0`); const body = await response.json() as { data?: Record<string, { address?: { balance?: number } }> }; const balance = body.data?.[address]?.address?.balance; return typeof balance === "number" ? { address, balanceBtc: balance / 100_000_000, rank: 0, source: "BLOCKCHAIR", confidence: "UNKNOWN" as const } : null; } catch (error) { if (error instanceof BlockchairProviderError && error.status === "NOT_CONFIGURED") return null; throw error; } }
+}

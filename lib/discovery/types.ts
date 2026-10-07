@@ -1,0 +1,2 @@
+export type DiscoveredAddress = { address: string; balanceBtc: number; rank: number; source: string; label?: string; entityName?: string; entityType?: "EXCHANGE" | "CUSTODY" | "MINER" | "INSTITUTION" | "OTHER"; confidence: "HIGH" | "MEDIUM" | "LOW" | "UNKNOWN" };
+export interface RichListProvider { getTopAddresses(limit: number): Promise<DiscoveredAddress[]>; getAddressBalance(address: string): Promise<number | null>; getAddressDetails(address: string): Promise<DiscoveredAddress | null>; }

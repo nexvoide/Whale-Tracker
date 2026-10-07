@@ -1,0 +1,11 @@
+ALTER TABLE "Wallet" ADD COLUMN "sourceWalletLabel" TEXT;
+ALTER TABLE "Wallet" ADD COLUMN "sourceUrl" TEXT;
+ALTER TABLE "Wallet" ADD COLUMN "balanceUsdSnapshot" REAL;
+ALTER TABLE "Wallet" ADD COLUMN "percentCoins" REAL;
+ALTER TABLE "Wallet" ADD COLUMN "flowNotes" TEXT;
+ALTER TABLE "Wallet" ADD COLUMN "totalIns" INTEGER;
+ALTER TABLE "Wallet" ADD COLUMN "totalOuts" INTEGER;
+ALTER TABLE "Wallet" ADD COLUMN "firstInAt" DATETIME;
+ALTER TABLE "Wallet" ADD COLUMN "firstOutAt" DATETIME;
+ALTER TABLE "Wallet" ADD COLUMN "isManuallyVerified" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Wallet" ADD COLUMN "sourceSnapshotAt" DATETIME;

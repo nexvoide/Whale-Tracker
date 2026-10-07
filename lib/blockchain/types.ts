@@ -1,0 +1,3 @@
+export type RawMempoolTransaction = { txid: string; status?: { confirmed?: boolean; block_time?: number }; vin?: Array<{ prevout?: { scriptpubkey_address?: string; value?: number } }>; vout?: Array<{ scriptpubkey_address?: string; value?: number }> };
+export type NormalizedTransaction = { txid: string; amountBtc: number; timestamp: Date; status: "CONFIRMED" | "MEMPOOL"; sourceAddresses: string[]; destinationAddresses: string[] };
+export interface BlockchainProvider { getTransaction(txid: string): Promise<RawMempoolTransaction | null>; getLatestTransactions(): Promise<RawMempoolTransaction[]>; getAddressInfo(address: string): Promise<unknown | null>; }

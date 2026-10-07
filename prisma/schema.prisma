@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+enum WalletType {
+  UNKNOWN
+  WHALE
+  POTENTIAL_WHALE
+  GOVERNMENT
+  HISTORICAL_INCIDENT
+  EXCHANGE
+  CUSTODY
+  INSTITUTION
+  MINER
+  OTHER
+}
+enum TransactionDirection {
+  WHALE_TO_EXCHANGE
+  EXCHANGE_TO_WHALE
+  WHALE_TO_WHALE
+  EXCHANGE_TO_EXCHANGE
+  UNKNOWN
+}
+model Wallet {
+  id String @id @default(cuid())
+  address String @unique
+  label String?
+  type WalletType @default(UNKNOWN)
+  btcBalance Float?
+  firstSeenAt DateTime?
+  lastSeenAt DateTime?
+  isTracked Boolean @default(false)
+  rank Int?
+  discoverySource String?
+  discoveryConfidence String @default("UNKNOWN")
+  sourceWalletLabel String?
+  sourceUrl String?
+  balanceUsdSnapshot Float?
+  percentCoins Float?
+  flowNotes String?
+  totalIns Int?
+  totalOuts Int?
+  firstInAt DateTime?
+  firstOutAt DateTime?
+  isManuallyVerified Boolean @default(false)
+  sourceSnapshotAt DateTime?
+  discoveredAt DateTime?
+  lastCheckedAt DateTime?
+  isActiveDiscovery Boolean @default(false)
+  entityId String?
+  entity Entity? @relation(fields: [entityId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sentTransactions Transaction[] @relation("SourceWallet")
+  receivedTransactions Transaction[] @relation("DestinationWallet")
+}
+model Entity {
+  id String @id @default(cuid())
+  name String @unique
+  type WalletType @default(UNKNOWN)
+  confidence String @default("UNKNOWN")
+  source String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  wallets Wallet[]
+}
+model Transaction {
+  id String @id @default(cuid())
+  txid String @unique
+  amountBtc Float
+  amountUsd Float
+  direction TransactionDirection @default(UNKNOWN)
+  timestamp DateTime
+  status String
+  sourceAddress String?
+  destinationAddress String?
+  sourceWalletId String?
+  destinationWalletId String?
+  sourceWallet Wallet? @relation("SourceWallet", fields: [sourceWalletId], references: [id])
+  destinationWallet Wallet? @relation("DestinationWallet", fields: [destinationWalletId], references: [id])
+  createdAt DateTime @default(now())
+  alerts Alert[]
+  @@index([timestamp])
+  @@index([direction])
+}
+model Alert {
+  id String @id @default(cuid())
+  transactionId String?
+  transaction Transaction? @relation(fields: [transactionId], references: [id])
+  alertType String
+  severity String
+  message String
+  sentToDiscord Boolean @default(false)
+  createdAt DateTime @default(now())
+}
+model PriceSnapshot {
+ id String @id @default(cuid())
+ symbol String
+ price Float
+ timestamp DateTime @default(now())
+ @@index([symbol, timestamp])
+}
